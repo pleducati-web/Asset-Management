@@ -8,5 +8,5 @@
  * (คีย์ลับเก็บใน Apps Script → การตั้งค่าโปรเจกต์ → พร็อพเพอร์ตี้ของสคริปต์ เท่านั้น)
  */
 window.PAMS_CONFIG = {
-  apiUrl: 'https://script.google.com/macros/s/ใส่รหัส-Deploy-ของคุณ/exec'
+  apiUrl: 'https://script.google.com/macros/s/AKfycbz0-yseRUtw9YsoIgxNnE3_jBfPAfc01De45BuzN5BKCpHpLAmmaK-k6YayAKr2USpVZw/exec'
 };
