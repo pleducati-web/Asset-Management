@@ -1,6 +1,6 @@
-/* PAMS v1.17.0 — สร้างจาก JavaScript.html (แก้ที่ JavaScript.html แล้วสร้างใหม่)
+/* PAMS v1.18.1 — สร้างจาก JavaScript.html (แก้ที่ JavaScript.html แล้วสร้างใหม่)
  * ไฟล์นี้ไม่มีรหัสผ่าน / API Key / Token — สิทธิ์ทุกอย่างตรวจที่ Google Apps Script */
-window.APP_VERSION = window.APP_VERSION || '1.17.0';
+window.APP_VERSION = window.APP_VERSION || '1.18.1';
 /* ============================================================
    JavaScript.html — Property & Asset Management System (ตอนที่ 3)
    - ทุกการเรียกเซิร์ฟเวอร์ส่ง session token และเซิร์ฟเวอร์ตรวจสิทธิ์ซ้ำทุกครั้ง
@@ -17,7 +17,7 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
   var POLL_MS = 30000;          // ตรวจเวอร์ชันข้อมูลทุก 30 วินาที (เบามาก)
   var FORCE_REFRESH_MS = 300000; // รีเฟรชเต็มอย่างน้อยทุก 5 นาที (กันกรณีแก้ข้อมูลตรงในชีต)
   var READ_FNS = ['getColumnStructure', 'listFieldDefs','analyzeImportColumns', 'getPublicInfo', 'getAppConfig', 'getDashboardData', 'getRecords', 'getRecordById', 'getDataVersion', 'searchAll',
-    'listFiles', 'getRecordHistory', 'getLookupOptions', 'getAuditLogs', 'listUsers', 'getSettings', 'getSystemStatus', 'listBackups', 'getImportTemplate', 'healthCheck', 'getAIStatus', 'getFileChunk', 'getHelpGuide', 'getPropertyLinks', 'getComboOptions', 'getMeetingConfig', 'listMeetingRequests', 'getLineGroupSettings', 'getCustomerOverview', 'checkContractFiles', 'listContractFiles'];
+    'listFiles', 'getRecordHistory', 'getLookupOptions', 'getAuditLogs', 'listUsers', 'getSettings', 'getSystemStatus', 'listBackups', 'getImportTemplate', 'healthCheck', 'getAIStatus', 'getFileChunk', 'getHelpGuide', 'getPropertyLinks', 'getComboOptions', 'getLineGroupSettings', 'getCustomerOverview', 'checkContractFiles', 'listContractFiles'];
   var COLS = {
     assets: ['seqNo', 'encumbrance', 'titleDeedNo', 'landNo', 'address', 'province', 'areaText', 'ownerName', 'assetType', 'buildingDesc', 'appraisalPrice', 'askingPrice', 'marketPrice', 'assetName'], // v1.15 ตามแบบตารางทรัพย์สิน
     land: ['landCode', 'titleDeedNo', 'documentType', 'province', 'district', 'status'],
@@ -27,21 +27,20 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
     legal: ['caseCode', 'caseTitle', 'blackCaseNo', 'court', 'status'],
     repairs: ['ticketNo', 'problem', 'urgency', 'actualCost', 'status'],
     sales: ['saleCode', 'assetId', 'offerPrice', 'negotiationDate', 'status'],
-    tasks: ['taskCode', 'title', 'assignee', 'priority', 'status'],
     contracts: ['contractNo', 'contractType', 'usePurpose', 'startDate', 'endDate', 'status'],
-    meetings: ['meetingCode', 'topicGroup', 'title', 'meetingDate', 'startTime', 'status']
+    purchases: ['agreementNo', 'side', 'buyerName', 'totalPrice', 'balance', 'transferDueDate', 'status'] // v1.18 สัญญาจะซื้อจะขาย
   };
   var STATUS_CLASS = {
     'อยู่ระหว่างดำเนินการ': 'b-progress', 'กำหนดเวลา': 'b-scheduled', 'ขายแล้ว': 'b-sold',
     'เสร็จสิ้น': 'b-done', 'ยกเลิก': 'b-cancel', 'เกินกำหนด': 'b-overdue',
     'ร่าง': 'b-cancel', 'มีผลบังคับ': 'b-done', 'ต่อสัญญาแล้ว': 'b-scheduled', 'สิ้นสุด': 'b-cancel',
-    'รอส่ง': 'b-soon', 'ส่งแล้ว': 'b-done', 'ส่งไม่สำเร็จ': 'b-overdue'
+    'โอนกรรมสิทธิ์แล้ว': 'b-sold', 'ผิดสัญญา': 'b-overdue'
   };
   var STATUS_COLOR = {
     'อยู่ระหว่างดำเนินการ': '#2F6FE4', 'กำหนดเวลา': '#7C5CD6', 'ขายแล้ว': '#C79A2B',
     'เสร็จสิ้น': '#15803D', 'ยกเลิก': '#B7BFCC', 'เกินกำหนด': '#C62828',
     'ร่าง': '#8A8AA0', 'มีผลบังคับ': '#34D399', 'ต่อสัญญาแล้ว': '#4CC9F0', 'สิ้นสุด': '#64748B',
-    'รอส่ง': '#F59E0B', 'ส่งแล้ว': '#22C55E', 'ส่งไม่สำเร็จ': '#EF4444'
+    'โอนกรรมสิทธิ์แล้ว': '#C79A2B', 'ผิดสัญญา': '#EF4444'
   };
   /** ไฟล์ที่เซิร์ฟเวอร์บล็อกเสมอ (แจ้งผู้ใช้ทันทีโดยไม่ต้องส่ง) — ด่านจริงอยู่ที่เซิร์ฟเวอร์ */
   var BLOCKED_EXT = ['exe', 'bat', 'cmd', 'com', 'js', 'mjs', 'cjs', 'jse', 'vbs', 'vbe', 'wsf', 'wsh', 'ps1', 'psm1', 'sh', 'bash',
@@ -109,7 +108,9 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
     contracts: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z|M14 2v6h6|M8 13h8|M8 17h5'
   };
   ICON.assets = ICON.brand;
-  ICON.meetings = 'M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1z|M16 8.5a4.5 4.5 0 0 1 0 7|M19 5.5a9 9 0 0 1 0 13';
+  // v1.18 สัญญาจะซื้อจะขาย: เอกสาร + ลูกกุญแจ (โอนกรรมสิทธิ์)
+  ICON.purchases = 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h6|M14 2v6h6|M20 8v3|M8 13h5|M8 17h3|M18 15a2 2 0 1 0 0 4 2 2 0 0 0 0-4z|M18 19v3|M18 21h2';
+  ICON.line = 'M21 11.5a8.4 8.4 0 0 1-9 8.4 9.6 9.6 0 0 1-3-.5L3 21l1.6-4.5A8 8 0 0 1 3 11.5 8.6 8.6 0 0 1 12 3a8.6 8.6 0 0 1 9 8.5z';
   var CHART_COLORS = ['#7C6CF6', '#4CC9F0', '#F5B82E', '#F06BAA', '#34D399', '#FB923C', '#A5B4FC', '#94A3B8'];
   function brandMark() { return el('div', { class: 'brand-mark' }, svg(ICON.brand, 24)); }
 
@@ -583,7 +584,7 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
     S.token = null; store.clear(); clearTimeout(S.idleTimer); stopPoller();
     S.cache = {}; S.versions = null; S.pendingRefresh = false;
     // ไม่ให้ผู้ใช้คนถัดไปบนเครื่องเดียวกันเห็นคำค้น/ประวัติถาม AI/ค่าหน้าจอของคนก่อน
-    S.list = {}; S.aiHistory = []; S.aiQuota = null; S.meetingCfg = null;
+    S.list = {}; S.aiHistory = []; S.aiQuota = null;
     modals.slice().forEach(function (m) { m.close(); });
     clear($('toasts'));
     if (t) call('logout', t).catch(function () { /* ignore */ });
@@ -627,6 +628,8 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
         el('span', { class: 'live', id: 'live', attrs: { title: 'ระบบตรวจข้อมูลใหม่อัตโนมัติทุก 30 วินาที และอัปเดตหน้าจอเมื่อข้อมูลเปลี่ยน' } },
           el('i'), el('span', { class: 'txt', text: 'อัปเดตอัตโนมัติ' })),
         el('button', { class: 'btn btn-ghost btn-icon', attrs: { title: 'รีเฟรชข้อมูล', 'aria-label': 'รีเฟรชข้อมูล' }, on: { click: manualRefresh } }, svg(ICON.refresh, 18)),
+        // v1.18 ปุ่มผูก/จัดการ LINE ส่วนตัว (เดิมอยู่ในเมนูแจ้งนัดประชุมที่ถูกลบ)
+        el('button', { class: 'btn btn-ghost btn-sm', attrs: { title: 'ผูกบัญชี LINE ส่วนตัว (ดูสรุปข้อมูลผ่าน LINE)', 'aria-label': 'LINE ส่วนตัว' }, on: { click: function () { lineLinkModal(); } } }, svg(ICON.line, 18), el('span', { class: 'txt', text: 'LINE' })),
         el('div', { class: 'user-chip' },
           el('div', { class: 'who' }, S.profile.displayName, el('small', { text: S.profile.roleLabel })),
           el('div', { class: 'avatar', text: initials })),
@@ -972,8 +975,6 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
       el('div', { class: 'card stat green' }, el('div', { class: 'label', text: 'ใหม่เดือนนี้' }),
         el('div', { class: 'value', text: fmtNum(sum('newThisMonth')) }), el('div', { class: 'note', text: 'รายการที่สร้างในเดือนปัจจุบัน' }))));
 
-    if (d.meetings) main.appendChild(meetingDashCard(d.meetings));
-
     if (d.trend && d.trend.values && d.mix && d.mix.items) {
       main.appendChild(el('div', { class: 'charts section' },
         el('div', { class: 'card card-pad' }, el('h3', null, d.trend.title, el('span', { class: 'sub', text: 'ปี ' + (Number(d.year) + 543) + ' · ' + (d.trend.unit === 'money' ? 'บาท' : 'รายการ') })),
@@ -1070,7 +1071,7 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
     { q: 'เดือนนี้มีหนี้ค้างกี่ราย', cat: 'debts' }, { q: 'สรุปงานซ่อมที่ค้างอยู่', cat: 'repairs' },
     { q: 'ที่ดินที่เกินกำหนดมีแปลงไหนบ้าง', cat: 'land' }, { q: 'เดือนนี้เพิ่มทรัพย์สินใหม่กี่รายการ', cat: 'assets' },
     { q: 'คดีที่มีนัดศาลเดือนหน้า', cat: 'legal' }, { q: 'ยอดรับชำระเดือนนี้รวมเท่าไร', cat: 'payments' },
-    { q: 'งานติดตามที่ใกล้ครบกำหนด', cat: 'tasks' }, { q: 'รายการขายที่กำลังเจรจาอยู่', cat: 'sales' }
+    { q: 'สัญญาจะซื้อจะขายที่ใกล้ครบกำหนดโอน', cat: 'purchases' }, { q: 'รายการขายที่กำลังเจรจาอยู่', cat: 'sales' }
   ];
 
   function renderAsk(main) {
@@ -1240,7 +1241,6 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
           on: { click: function () { if (c !== cat) navigate('cat:' + c); } } }, svg(ICON[c] || ICON.dashboard, 16), ' ' + S.config.schemas[c].label);
       })));
     }
-    if (cat === 'meetings') main.appendChild(meetingBanner());
     if (cat === 'customers' && (S.config.schemas.debts || S.config.schemas.payments)) {
       main.appendChild(el('div', { class: 'row section' }, el('span', { class: 'muted small', text: 'เปิดรายชื่อลูกค้าเพื่อดูหนี้ สัญญา และการรับชำระครบในหน้าเดียว · หรือดูรวมทั้งหมดที่แท็บด้านบน' })));
     }
@@ -1263,7 +1263,7 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
       delChk ? el('label', { class: 'check small' }, delChk, 'แสดงรายการที่ถูกลบ') : null,
       el('button', { class: 'btn btn-sm', on: { click: load } }, svg(ICON.refresh, 16), 'รีเฟรช'),
       el('button', { class: 'btn btn-sm', attrs: { title: 'เลือกคอลัมน์ที่แสดงในตาราง', 'data-act': 'cols' }, on: { click: function () { openColumnChooser(cat); } } }, 'คอลัมน์'),
-      S.config.canManageFields && cat !== 'meetings' ? el('button', { class: 'btn btn-sm', attrs: { title: 'เพิ่ม/แก้ไข/ซ่อน ช่องข้อมูลเพิ่มเติมของหมวดนี้', 'data-act': 'fields' }, on: { click: function () { openFieldManager(cat); } } }, 'ช่องข้อมูล') : null,
+      S.config.canManageFields ? el('button', { class: 'btn btn-sm', attrs: { title: 'เพิ่ม/แก้ไข/ซ่อน ช่องข้อมูลเพิ่มเติมของหมวดนี้', 'data-act': 'fields' }, on: { click: function () { openFieldManager(cat); } } }, 'ช่องข้อมูล') : null,
       S.config.canManageFields ? el('button', { class: 'btn btn-sm', attrs: { title: 'เพิ่ม/ลบ/เปลี่ยนชื่อคอลัมน์ของหมวดนี้', 'data-act': 'columns' }, on: { click: function () { openColumnManager(cat); } } }, 'จัดการคอลัมน์') : null), tableBox);
     main.appendChild(card);
 
@@ -1357,7 +1357,7 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
   function rowActionDefs(cat, rec) {
     var list = [{ label: 'ดู', title: 'ดูรายละเอียดทั้งหมด', fn: function () { openDetail(cat, rec.id); } }];
     if (!rec.isDeleted) {
-      if (can(cat, 'update') && !(cat === 'meetings' && rec.status === 'ยกเลิก')) list.push({ label: 'แก้ไข', title: 'แก้ไขรายการนี้ (บันทึกทับแถวเดิม)', cls: 'btn-primary', fn: function (b) {
+      if (can(cat, 'update')) list.push({ label: 'แก้ไข', title: 'แก้ไขรายการนี้ (บันทึกทับแถวเดิม)', cls: 'btn-primary', fn: function (b) {
         return busy(b, function () { return authed('getRecordById', cat, rec.id).then(function (r) { openForm(cat, 'update', r.record); }).catch(showError); });
       } });
       if (can(cat, 'upload')) list.push({ label: 'แนบไฟล์', title: 'แนบไฟล์เข้ากับรายการนี้', fn: function () { openDetail(cat, rec.id, 'files'); } });
@@ -1565,7 +1565,7 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
     m.title.textContent = schema.label + ' — ' + titleText;
     var pane = el('div');
     var tabs = el('div', { class: 'tabs', attrs: { role: 'tablist' } });
-    var defs = [['info', 'ข้อมูล']].concat(cat === 'assets' || cat === 'land' ? [['links', 'ภาระผูกพัน']] : [], cat === 'meetings' ? [['requests', 'คำขอเลื่อนนัด']] : [], cat === 'customers' ? [['debtview', 'หนี้ · สัญญา · รับชำระ']] : [], [['files', 'ไฟล์แนบ'], ['history', 'ประวัติ']]);
+    var defs = [['info', 'ข้อมูล']].concat(cat === 'assets' || cat === 'land' ? [['links', 'ภาระผูกพัน']] : [], cat === 'customers' ? [['debtview', 'หนี้ · สัญญา · รับชำระ']] : [], [['files', 'ไฟล์แนบ'], ['history', 'ประวัติ']]);
     function show(key) {
       Array.prototype.forEach.call(tabs.children, function (b) { b.classList.toggle('active', b.getAttribute('data-k') === key); b.setAttribute('aria-selected', b.getAttribute('data-k') === key); });
       clear(pane);
@@ -1573,7 +1573,6 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
       if (key === 'files') filesPane(pane, cat, rec);
       if (key === 'history') historyPane(pane, cat, rec);
       if (key === 'links') linksPane(pane, cat, rec);
-      if (key === 'requests') requestsPane(pane, cat, rec, m);
       if (key === 'debtview') customerDebtPane(pane, rec, m);
     }
     defs.forEach(function (d) { tabs.appendChild(el('button', { class: 'tab', attrs: { 'data-k': d[0], role: 'tab' }, text: d[1], on: { click: function () { show(d[0]); } } })); });
@@ -1591,18 +1590,9 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
       if (cat === 'contracts') foot.push(el('button', { class: 'btn', text: 'ดูไฟล์สัญญาเช่า', on: { click: function () { contractFilesModal(rec); } } }));
       if (cat === 'contracts' && can('contracts', 'create') && ['ยกเลิก', 'ต่อสัญญาแล้ว'].indexOf(rec.status) === -1) foot.push(el('button', { class: 'btn btn-gold', text: 'ต่อสัญญา / ขยายอายุ', on: { click: function () { renewContract(rec); } } }));
       if ((cat === 'assets' || cat === 'land') && can('sales', 'create') && rec.status !== 'ขายแล้ว') foot.push(el('button', { class: 'btn', text: 'บันทึกการขาย', on: { click: function () { saleFrom(cat, rec); } } }));
-      if (cat === 'meetings' && can(cat, 'update') && rec.status !== 'ยกเลิก') {
-        foot.push(el('button', { class: 'btn btn-danger', text: 'ยกเลิกนัด', on: { click: function () { cancelMeetingUi(m, rec); } } }));
-        foot.push(el('button', { class: 'btn', text: 'ส่งทดสอบถึงผู้ดูแล', attrs: { title: 'ส่งการ์ดตัวอย่างถึง LINE ส่วนตัวของผู้ดูแลระบบก่อน (ยังไม่ส่งเข้ากลุ่ม)' }, on: { click: function (ev) {
-          var b = ev.currentTarget;
-          busy(b, function () { return authed('sendMeetingTest', rec.id, newRid()).then(function (r) { toast(r.message, r.sent ? 'ok' : 'err'); }).catch(showError); });
-        } } }));
-        foot.push(el('button', { class: 'btn btn-gold', text: 'ส่งแจ้งเตือน LINE', on: { click: function (ev) {
-          var b = ev.currentTarget;
-          busy(b, function () { return sendMeeting(rec.id).then(function () { m.close(); refreshCurrent(); openDetail(cat, rec.id); }, function () {}); });
-        } } }));
-      }
-      if (can(cat, 'update') && !(cat === 'meetings' && rec.status === 'ยกเลิก')) foot.push(el('button', { class: 'btn btn-primary', text: cat === 'meetings' ? 'แก้ไขรายการ' : 'แก้ไข', on: { click: function () { m.close(); openForm(cat, 'update', rec); } } }));
+      // v1.18 ทำสัญญาจะซื้อจะขายจากทรัพย์สิน/ที่ดิน หรือจากรายการเจรจาขาย (ระบบใส่ข้อมูลอ้างอิงให้)
+      if ((cat === 'assets' || cat === 'land' || cat === 'sales') && can('purchases', 'create') && rec.status !== 'ขายแล้ว') foot.push(el('button', { class: 'btn', text: 'ทำสัญญาจะซื้อจะขาย', on: { click: function () { m.close(); purchaseFrom(cat, rec); } } }));
+      if (can(cat, 'update')) foot.push(el('button', { class: 'btn btn-primary', text: 'แก้ไข', on: { click: function () { m.close(); openForm(cat, 'update', rec); } } }));
     } else {
       foot.push(el('div', { class: 'spacer' }));
       if (canG('purge')) foot.push(el('button', { class: 'btn btn-danger', text: 'ลบถาวร', on: { click: function () { doPurge(m, cat, rec); } } }));
@@ -1614,16 +1604,25 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
     m.setFoot(foot);
   }
 
-  /** v1.8 หลังแก้วัน/เวลา/รายละเอียดสำคัญของนัดที่แจ้งเตือนเช้าไปแล้ว — ให้ผู้ใช้ยืนยันก่อนแจ้งเตือนใหม่ (ระบบไม่ส่งซ้ำเอง) */
-  function askReRemind(id) {
-    confirmBox({ title: 'แจ้งเตือนเช้าวันประชุมอีกครั้ง?', okText: 'ยืนยัน แจ้งเตือนใหม่', cancelText: 'ไม่ต้องแจ้งซ้ำ',
-      message: 'นัดนี้ระบบแจ้งเตือนเช้าวันประชุมไปแล้ว และคุณเปลี่ยนวัน เวลา หรือรายละเอียดสำคัญ\nต้องการให้ระบบแจ้งเตือนใหม่ในเช้าวันประชุม (07:00–08:00 น.) หรือไม่?' }).then(function (c) {
-      if (!c.ok) { toast('ไม่แจ้งเตือนซ้ำ (สถานะคงเป็น "แจ้งเตือนแล้ว")', 'warn'); return; }
-      return authed('resetMeetingReminder', id, newRid()).then(function (x) { toast(x.message, 'ok'); refreshCurrent(); }).catch(showError);
-    });
+  /** v1.18 เปิดฟอร์มสัญญาจะซื้อจะขายโดยใส่ทรัพย์สิน/ที่ดิน/รายการเจรจาขายให้ (เราเป็นผู้จะขาย) */
+  function purchaseFrom(cat, rec) {
+    var sideOpts = ((S.config.schemas.purchases || {}).fields || []).filter(function (f) { return f.k === 'side'; })[0];
+    var d = { side: sideOpts && sideOpts.opts && sideOpts.opts.length ? sideOpts.opts[0] : '', status: 'ร่าง', agreementDate: todayIso() };
+    if (cat === 'assets') d.assetId = rec.id;
+    if (cat === 'land') { d.landId = rec.id; if (rec.assetId) d.assetId = rec.assetId; }
+    if (cat === 'sales') {
+      d.saleId = rec.id;
+      if (rec.assetId) d.assetId = rec.assetId;
+      if (rec.landId) d.landId = rec.landId;
+      if (rec.buyerName) d.buyerName = rec.buyerName;
+      if (rec.buyerCustomerId) d.partyCustomerId = rec.buyerCustomerId;
+      if (rec.buyerPhone) d.partyPhone = rec.buyerPhone;
+      if (rec.offerPrice !== '' && rec.offerPrice !== undefined) d.totalPrice = rec.offerPrice;
+      if (rec.deposit !== '' && rec.deposit !== undefined) d.deposit = rec.deposit;
+      if (rec.transferDate) d.transferDueDate = rec.transferDate;
+    }
+    openForm('purchases', 'create', d);
   }
-
-  var REMIND_TH = { PENDING: 'รอแจ้งเตือน', PROCESSING: 'กำลังส่ง', SENT: 'แจ้งเตือนแล้ว', FAILED: 'ส่งไม่สำเร็จ', CANCELLED: 'ยกเลิก', MISSED: 'พลาดช่วงเวลา' };
 
   function infoPane(cat, rec) {
     var schema = S.config.schemas[cat];
@@ -1650,16 +1649,11 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
       burden = el('div', { style: { marginBottom: '10px' } });
       authed('getPropertyLinks', cat, rec.id).then(function (d) { if (d.summary.length) burden.appendChild(linksSummary(d, true)); }).catch(function () {});
     }
-    if (cat === 'meetings') {
-      if (rec.sendResult) extra.push(el('div', { class: 'notice' + (rec.status === 'ส่งไม่สำเร็จ' ? ' gold' : ''), style: { marginTop: '12px' }, text: 'ผลการส่ง LINE ล่าสุด: ' + rec.sendResult }));
-      var rs = rec.reminderStatus || 'PENDING';
-      var reBtn = (['SENT', 'MISSED', 'FAILED'].indexOf(rs) !== -1) && rec.status !== 'ยกเลิก' && can(cat, 'update') && canG('announce') ?
-        el('button', { class: 'btn btn-sm', style: { marginLeft: '8px' }, text: 'ตั้งให้แจ้งเตือนเช้าอีกครั้ง', on: { click: function () { askReRemind(rec.id); } } }) : null;
-      extra.push(el('div', { class: 'notice' + (rs === 'FAILED' || rs === 'MISSED' ? ' gold' : ''), style: { marginTop: '8px' } },
-        el('b', { text: '⏰ แจ้งเตือนเช้าวันประชุม (07:00–08:00): ' + (REMIND_TH[rs] || rs) + ' [' + rs + ']' }),
-        rec.reminderAt ? ' · ส่งเมื่อ ' + fmtTs(rec.reminderAt) : '', reBtn,
-        rec.reminderResult ? el('div', { class: 'muted small', text: rec.reminderResult }) : null));
-      extra.push(meetingNoteBox());
+    // v1.18 สัญญาจะซื้อจะขาย: สรุปยอดเงิน (เฉพาะผู้มีสิทธิ์ข้อมูลการเงิน — ช่องที่ถูกซ่อนเป็นค่าว่าง)
+    if (cat === 'purchases' && rec.totalPrice !== '' && rec.totalPrice !== undefined) {
+      var paidPct = Number(rec.totalPrice) > 0 ? Math.round((Number(rec.paidTotal || 0) / Number(rec.totalPrice)) * 100) : 0;
+      extra.push(el('div', { class: 'notice' + (rec.status === 'โอนกรรมสิทธิ์แล้ว' && Number(rec.balance) > 0 ? ' gold' : ''), style: { marginTop: '12px' } },
+        'ราคารวม ' + fmtMoney(rec.totalPrice) + ' · ชำระแล้ว ' + fmtMoney(rec.paidTotal || 0) + ' (' + paidPct + '%) · คงเหลือ ' + fmtMoney(rec.balance === '' ? rec.totalPrice : rec.balance)));
     }
     return el('div', null, burden, dueBadge(rec._due) ? el('div', { style: { marginBottom: '10px' } }, dueBadge(rec._due)) : null, kv, extra,
       hidden ? el('p', { class: 'muted small', text: 'มี ' + hidden + ' ช่องที่ถูกซ่อนตามสิทธิ์ของคุณ' }) : null,
@@ -1750,11 +1744,11 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
   function extOf(name) { var p = String(name || '').split('.'); return p.length > 1 ? p.pop().toLowerCase() : ''; }
 
   /* ============================== v1.10 เอกสาร: สัญญาเช่า · กฎหมายและคดี ============================== */
-  var DOC_CATS = ['contracts', 'legal'];
+  var DOC_CATS = ['contracts', 'purchases', 'legal'];
   var DOC_KINDS = [['DRIVE', 'ลิงก์ Google Drive / โฟลเดอร์'], ['SHEETS', 'ลิงก์ Google Sheets'], ['LINK', 'ลิงก์อื่น (https)'], ['NOTE', 'บันทึกข้อความ']];
   var KIND_ICON = { DRIVE: '📁', SHEETS: '📊', LINK: '🔗', NOTE: '📝' };
   function docTypesOf(cat) {
-    var k = cat === 'contracts' ? 'OPTIONS_DOC_TYPE_CONTRACT' : 'OPTIONS_DOC_TYPE_LEGAL';
+    var k = cat === 'contracts' ? 'OPTIONS_DOC_TYPE_CONTRACT' : (cat === 'purchases' ? 'OPTIONS_DOC_TYPE_PURCHASE' : 'OPTIONS_DOC_TYPE_LEGAL');
     return String((S.config.settings || {})[k] || '').split('|').map(function (x) { return x.trim(); }).filter(Boolean);
   }
   function docKey(s) { return String(s || '').replace(/\s+/g, ' ').trim().toLowerCase(); }
@@ -2603,7 +2597,7 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
 
   /* ============================== ฟอร์มเพิ่ม/แก้ไข ============================== */
 
-  /* ============================== แจ้งนัดประชุม / แจ้งงาน ============================== */
+  /* ============================== หนี้ของลูกค้า · LINE ส่วนตัว · กลุ่ม LINE (v1.18 ลบหน้าจอแจ้งนัดประชุม / แจ้งงาน) ============================== */
 
   /** แท็บ "หนี้ · สัญญา · รับชำระ" ในหน้าลูกค้า — ข้อมูลครบของลูกค้ารายนี้ ตามสิทธิ์ */
   function customerDebtPane(pane, rec, m) {
@@ -2651,100 +2645,6 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
     }).catch(function (e) { clear(pane).appendChild(el('div', { class: 'empty', text: e.message || 'โหลดไม่สำเร็จ' })); });
   }
 
-  function loadMeetingCfg(force) {
-    if (S.meetingCfg && !force) return Promise.resolve(S.meetingCfg);
-    return authed('getMeetingConfig').then(function (c) { S.meetingCfg = c; return c; });
-  }
-
-  /** หมายเหตุใต้ฟอร์ม: พื้นขาว ตัวอักษรสีน้ำเงิน · LINE ID บอทจริงจากเซิร์ฟเวอร์ */
-  function meetingNoteBox() {
-    var box = el('div', { class: 'mtg-note', attrs: { role: 'note' }, text: 'หมายเหตุ: กำลังโหลด LINE ID ของบอท…' });
-    loadMeetingCfg().then(function (c) {
-      clear(box);
-      box.appendChild(document.createTextNode(c.note));
-      box.appendChild(el('div', { class: 'mtg-note-ex', text: 'ตัวอย่างข้อความ: ' + c.example }));
-    }).catch(function () { box.textContent = 'หมายเหตุ: กรณีวันและเวลาที่กำหนดไม่สะดวก สามารถแจ้งเปลี่ยนแปลงผ่าน LINE ของระบบ พร้อมแจ้งเหตุผลและเสนอวัน เวลาใหม่ที่สะดวก ขอบคุณครับ/ค่ะ'; });
-    return box;
-  }
-
-  /** ส่งแจ้งเตือน LINE — แสดงผลจริงจากเซิร์ฟเวอร์ (สำเร็จ / ไม่พบกลุ่ม / ส่งไม่สำเร็จ / ส่งซ้ำ) */
-  function sendMeeting(id) {
-    return authed('sendMeetingNotice', id, newRid()).then(function (r) {
-      toast(r.message, r.sent ? 'ok' : (r.status === 'DUPLICATE' ? 'warn' : 'err'));
-      return r;
-    }).catch(function (e) { showError(e); throw e; });
-  }
-
-  function cancelMeetingUi(m, rec) {
-    confirmBox({ title: 'ยกเลิกนัด', danger: true, okText: 'ยกเลิกนัด', reasonLabel: 'เหตุผลการยกเลิก (จำเป็น)',
-      message: Number(rec.sendCount || 0) > 0 ? 'นัดนี้เคยส่ง LINE แล้ว ระบบจะส่งแจ้งยกเลิกถึงกลุ่มเดิมให้อัตโนมัติ\nยืนยันยกเลิกนัดหรือไม่?' : 'นัดนี้ยังไม่เคยส่ง LINE ระบบจะเปลี่ยนสถานะเป็น "ยกเลิก" เท่านั้น\nยืนยันหรือไม่?' })
-      .then(function (r) {
-        if (!r.ok) return;
-        if (!r.reason) { toast('กรุณาระบุเหตุผลการยกเลิก', 'warn'); return; }
-        return authed('cancelMeeting', rec.id, r.reason, newRid()).then(function (res) {
-          toast(res.message, /ไม่สำเร็จ|ไม่พบกลุ่ม/.test(res.message) ? 'warn' : 'ok');
-          m.close(); refreshCurrent();
-        }).catch(showError);
-      });
-  }
-
-  function reqWhen(q) {
-    return (q.proposedDate ? fmtDate(q.proposedDate) : 'วันเดิม') + (q.proposedStart ? ' · ' + q.proposedStart + (q.proposedEnd ? '–' + q.proposedEnd : '') + ' น.' : '');
-  }
-
-  /** แท็บ "คำขอเลื่อนนัด" ในหน้ารายละเอียด — อนุมัติแล้วระบบจึงเปลี่ยนนัดจริงและแจ้งกลุ่ม */
-  function requestsPane(pane, cat, rec, m) {
-    pane.appendChild(el('div', { class: 'page-loading' }, el('div', { class: 'loader' })));
-    authed('listMeetingRequests', rec.id).then(function (d) {
-      clear(pane);
-      pane.appendChild(el('div', { class: 'muted small', style: { marginBottom: '10px' }, text: 'คำขอจาก LINE เป็นเพียง "คำขอ" — นัดจะเปลี่ยนจริงเมื่อผู้จัด ผู้บริหาร หรือผู้ดูแลระบบกดอนุมัติ แล้วระบบจะแจ้งกลุ่มเดิมให้อัตโนมัติ' }));
-      if (!d.items.length) { pane.appendChild(el('div', { class: 'empty', text: 'ยังไม่มีคำขอเลื่อน/เปลี่ยนนัด' })); return; }
-      pane.appendChild(el('div', { class: 'list-rows' }, d.items.map(function (q) {
-        var acts = null;
-        if (d.canDecide && q.status === 'รอพิจารณา' && rec.status !== 'ยกเลิก') {
-          var decide = function (approve) {
-            return function (ev) {
-              var b = ev.currentTarget;
-              confirmBox({ title: approve ? 'อนุมัติคำขอเลื่อนนัด' : 'ไม่อนุมัติคำขอ', okText: approve ? 'อนุมัติและแจ้งกลุ่ม' : 'ไม่อนุมัติ', danger: !approve, reasonLabel: 'หมายเหตุ (ไม่บังคับ)',
-                message: approve ? 'เปลี่ยนนัดเป็น ' + reqWhen(q) + '\nระบบจะบันทึกการเปลี่ยนแปลงและส่งแจ้งกลุ่ม LINE เดิม' : 'นัดหมายจะคงเดิม' })
-                .then(function (r) {
-                  if (!r.ok) return;
-                  return busy(b, function () {
-                    return authed('decideMeetingRequest', q.id, approve, r.reason, newRid()).then(function (res) {
-                      toast(res.message, /ไม่สำเร็จ|ไม่พบกลุ่ม/.test(res.message) ? 'warn' : 'ok'); m.close(); refreshCurrent(); openDetail(cat, rec.id, 'requests');
-                    }).catch(showError);
-                  });
-                });
-            };
-          };
-          acts = el('div', { class: 'row' }, el('button', { class: 'btn btn-sm btn-primary', text: 'อนุมัติ', on: { click: decide(true) } }),
-            el('button', { class: 'btn btn-sm', text: 'ไม่อนุมัติ', on: { click: decide(false) } }));
-        }
-        return el('div', { class: 'lrow', style: { cursor: 'default', alignItems: 'flex-start' } },
-          el('div', { class: 'main-t' },
-            el('div', { class: 't1', text: 'เสนอ: ' + reqWhen(q) }),
-            el('div', { class: 't2', text: 'เหตุผล: ' + q.reason }),
-            el('div', { class: 't2', text: q.requesterName + ' · ' + q.source + ' · ' + fmtTs(q.createdAt) + (q.decidedAt ? ' · พิจารณาโดย ' + (q.decidedBy || '–') + ' ' + fmtTs(q.decidedAt) : '') + (q.decisionNote ? ' · ' + q.decisionNote : '') }),
-            q.rawText ? el('div', { class: 't2 muted', text: 'ข้อความเดิม: ' + q.rawText }) : null,
-            q.notifyResult ? el('div', { class: 't2 muted', text: q.notifyResult }) : null,
-            acts),
-          el('span', { class: 'badge ' + (q.status === 'อนุมัติ' ? 'b-done' : q.status === 'ไม่อนุมัติ' ? 'b-cancel' : 'b-soon'), text: q.status }));
-      })));
-    }).catch(function (e) { clear(pane).appendChild(el('div', { class: 'empty', text: e.message || 'โหลดไม่สำเร็จ' })); });
-  }
-
-  function pendingRequestsModal() {
-    var m = openModal({ title: 'คำขอเลื่อน/เปลี่ยนนัดที่รอพิจารณา', body: el('div', { class: 'page-loading' }, el('div', { class: 'loader' })) });
-    authed('listMeetingRequests', '').then(function (d) {
-      if (!d.items.length) { m.setBody(el('div', { class: 'empty', text: 'ไม่มีคำขอรอพิจารณา' })); return; }
-      m.setBody(el('div', { class: 'list-rows' }, d.items.map(function (q) {
-        return el('div', { class: 'lrow', attrs: { role: 'button', tabindex: 0 }, on: { click: function () { m.close(); openDetail('meetings', q.meetingId, 'requests'); } } },
-          el('div', { class: 'main-t' }, el('div', { class: 't1', text: q.meetingCode + ' · เสนอ ' + reqWhen(q) }), el('div', { class: 't2', text: q.reason + ' · ' + fmtTs(q.createdAt) })),
-          el('span', { class: 'badge b-soon', text: q.status }));
-      })));
-    }).catch(function (e) { m.setBody(el('div', { class: 'empty', text: e.message || 'โหลดไม่สำเร็จ' })); });
-  }
-
   /** ผูกบัญชี LINE ส่วนตัว: เพิ่มบอทเป็นเพื่อน → พิมพ์ "ผูกบัญชี 123456" ในแชตส่วนตัว */
   function lineLinkModal() {
     var m = openModal({ title: 'รับแจ้งเตือน LINE ส่วนตัว', size: 'sm', body: el('div', { class: 'page-loading' }, el('div', { class: 'loader' })) });
@@ -2764,10 +2664,10 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
         el('div', { class: 'row' }, codeBox, copy),
         el('div', { class: 'muted small', text: 'บอทจะตอบว่า "ผูกบัญชีเรียบร้อย" · LINE ส่งข้อความส่วนตัวได้เฉพาะผู้ที่เพิ่มบอทเป็นเพื่อนและไม่ได้บล็อกบอท' }),
         r.linked ? notifyToggle(r.lineNotify) : null));
-      var foot = [el('button', { class: 'btn', text: 'ปิด', on: { click: function () { m.close(); S.meetingCfg = null; } } })];
+      var foot = [el('button', { class: 'btn', text: 'ปิด', on: { click: function () { m.close(); } } })];
       if (r.linked) foot.unshift(el('button', { class: 'btn btn-danger', text: 'ยกเลิกการผูก LINE', on: { click: function (ev) {
         var b = ev.currentTarget;
-        busy(b, function () { return authed('unlinkLine', newRid()).then(function () { toast('ยกเลิกการผูก LINE แล้ว', 'ok'); m.close(); S.meetingCfg = null; refreshCurrent(); }).catch(showError); });
+        busy(b, function () { return authed('unlinkLine', newRid()).then(function () { toast('ยกเลิกการผูก LINE แล้ว', 'ok'); m.close(); refreshCurrent(); }).catch(showError); });
       } } }));
       m.setFoot(foot);
     }).catch(function (e) { m.setBody(el('div', { class: 'notice', text: e.message || 'ขอรหัสไม่สำเร็จ' })); });
@@ -2781,51 +2681,18 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
       authed('setMyLineNotify', chk.checked, newRid()).then(function (x) { toast(x.lineNotify === 'on' ? 'เปิดรับแจ้งเตือน LINE ส่วนตัวแล้ว' : 'ปิดรับแจ้งเตือน LINE ส่วนตัวแล้ว', 'ok'); })
         .catch(function (e) { chk.checked = !chk.checked; showError(e); }).finally(function () { chk.disabled = false; });
     });
-    return el('div', { class: 'notice' }, el('label', { class: 'check' }, chk, 'รับแจ้งเตือนนัดประชุมทาง LINE ส่วนตัว'),
-      el('div', { class: 'muted small', text: 'ใช้เฉพาะผู้บริหาร/ผู้ดูแลระบบที่ได้รับอนุญาต · ส่งในช่วง 07:00–08:00 น.' }));
+    return el('div', { class: 'notice' }, el('label', { class: 'check' }, chk, 'รับแจ้งเตือนจากระบบทาง LINE ส่วนตัว'),
+      el('div', { class: 'muted small', text: 'ใช้เฉพาะผู้บริหาร/ผู้ดูแลระบบที่ได้รับอนุญาต' }));
   }
 
-  /** แถบด้านบนหน้ารายการแจ้งนัด: คำขอรอพิจารณา · หมวดที่ยังไม่มีกลุ่ม LINE · ผูก LINE ส่วนตัว */
-  function meetingBanner() {
-    var box = el('div', { class: 'stack section' });
-    loadMeetingCfg(true).then(function (c) {
-      if (c.sheetReady === false) box.appendChild(el('div', { class: 'notice gold', text: 'ยังไม่มีชีต Meetings — ผู้ดูแลระบบหลักกด "อัปเดตโครงสร้างชีต" (ตั้งค่าระบบ → การดำเนินการ) ก่อนเริ่มใช้งานเมนูนี้' }));
-      if (c.canAnnounce && c.pendingRequests) box.appendChild(el('div', { class: 'notice gold row' }, el('span', { text: 'มีคำขอเลื่อน/เปลี่ยนนัดจาก LINE รอพิจารณา ' + c.pendingRequests + ' รายการ' }),
-        el('button', { class: 'btn btn-sm btn-primary', text: 'ดูคำขอ', on: { click: pendingRequestsModal } })));
-      if (c.canAnnounce) {
-        var un = c.topics.filter(function (x) { return !x.mapped; }).map(function (x) { return x.topic; });
-        if (!c.lineEnabled) box.appendChild(el('div', { class: 'notice', text: 'ระบบยังปิดการส่ง LINE — บันทึกนัดได้ แต่ส่งแจ้งเตือนไม่ได้จนกว่าผู้ดูแลระบบหลักจะเปิด' }));
-        else if (un.length) box.appendChild(el('div', { class: 'notice', text: 'หมวดงานที่ยังไม่ได้กำหนดกลุ่ม LINE (ระบบจะไม่ส่งจนกว่าผู้ดูแลระบบหลักตั้งค่า): ' + un.join(' · ') }));
-      }
-      box.appendChild(el('div', { class: 'row' }, el('span', { class: 'muted small', text: 'LINE ส่วนตัวของคุณ: ' }),
-        el('span', { class: 'badge ' + (c.myLineLinked ? 'b-ok' : 'b-cancel'), text: c.myLineLinked ? 'ผูกแล้ว' : 'ยังไม่ผูก' }),
-        el('button', { class: 'btn btn-sm', text: c.myLineLinked ? 'จัดการ LINE ส่วนตัว' : 'รับแจ้งเตือน LINE ส่วนตัว', on: { click: lineLinkModal } })));
-    }).catch(function () { /* ไม่กระทบรายการ */ });
-    return box;
-  }
-
-  /** การ์ด Dashboard: นัดประชุม / แจ้งงานที่จะถึง */
-  function meetingDashCard(mt) {
-    var card = el('div', { class: 'card card-pad section' }, el('h3', null, 'นัดประชุม / แจ้งงานที่จะถึง', el('span', { class: 'sub', text: mt.upcomingTotal + ' รายการ' })));
-    if (mt.pendingRequests) card.appendChild(el('div', { class: 'notice gold row', style: { marginBottom: '10px' } }, el('span', { text: 'คำขอเลื่อน/เปลี่ยนนัดจาก LINE รอพิจารณา ' + mt.pendingRequests + ' รายการ' }),
-      el('button', { class: 'btn btn-sm btn-primary', text: 'ดูคำขอ', on: { click: pendingRequestsModal } })));
-    if (!mt.upcoming.length) card.appendChild(el('div', { class: 'empty', text: 'ยังไม่มีนัดที่จะถึง' }));
-    else card.appendChild(el('div', { class: 'list-rows' }, mt.upcoming.map(function (i) {
-      return el('div', { class: 'lrow', attrs: { role: 'button', tabindex: 0 }, on: { click: function () { openDetail('meetings', i.id); }, keydown: function (ev) { if (ev.key === 'Enter') openDetail('meetings', i.id); } } },
-        el('div', { class: 'main-t' }, el('div', { class: 't1', text: i.title }), el('div', { class: 't2', text: i.code + ' · ' + i.topic + ' · ' + fmtDate(i.date) + ' ' + i.time })),
-        statusBadge(i.status));
-    })));
-    return card;
-  }
-
-  /** ตั้งค่าระบบ: กลุ่ม LINE ที่ยืนยันแล้ว + กำหนดกลุ่มปลายทางของแต่ละหมวดงาน (ผู้ดูแลระบบหลัก) */
+  /** ตั้งค่าระบบ: กลุ่ม LINE ที่ยืนยันแล้ว + ผู้รับ LINE ส่วนตัว (ผู้ดูแลระบบหลัก) — v1.18 ไม่มีการกำหนดกลุ่มตามหมวดงานแล้ว */
   function lineGroupsCard() {
-    var card = el('div', { class: 'card card-pad section' }, el('h3', { text: 'กลุ่ม LINE ตามหมวดงาน (แจ้งนัดประชุม / แจ้งงาน)' }), el('div', { class: 'page-loading' }, el('div', { class: 'loader' })));
+    var card = el('div', { class: 'card card-pad section' }, el('h3', { text: 'กลุ่ม LINE และผู้รับ LINE ส่วนตัว' }), el('div', { class: 'page-loading' }, el('div', { class: 'loader' })));
     function load(refresh) { authed('getLineGroupSettings', !!refresh).then(draw).catch(function (e) { clear(card).appendChild(el('div', { class: 'notice', text: e.message || 'โหลดไม่สำเร็จ' })); }); }
     function draw(d) {
       clear(card);
-      card.appendChild(el('h3', { text: 'กลุ่ม LINE ตามหมวดงาน (แจ้งนัดประชุม / แจ้งงาน)' }));
-      card.appendChild(el('div', { class: 'notice', text: 'ระบบส่งเฉพาะกลุ่มที่ LINE ยืนยันว่าบอทอยู่ในกลุ่มจริง · หมวดที่ยังไม่กำหนดกลุ่ม ระบบจะไม่ส่ง (ไม่ส่งไปกลุ่มอื่นแทน) · วิธีได้ Group ID: เชิญบอทเข้ากลุ่ม แล้วกลุ่มจะขึ้นใน "กลุ่มที่รอยืนยัน" ด้านล่าง' }));
+      card.appendChild(el('h3', { text: 'กลุ่ม LINE และผู้รับ LINE ส่วนตัว' }));
+      card.appendChild(el('div', { class: 'notice', text: 'ระบบรับเฉพาะกลุ่มที่ LINE ยืนยันว่าบอทอยู่ในกลุ่มจริง (ใช้คำสั่งสรุปข้อมูลในแชตได้) · วิธีได้ Group ID: เชิญบอทเข้ากลุ่ม แล้วกลุ่มจะขึ้นใน "กลุ่มที่รอยืนยัน" ด้านล่าง' }));
       card.appendChild(el('div', { class: 'kv section' },
         el('div', { class: 'item' }, el('div', { class: 'k', text: 'LINE ID ของบอท' }), el('div', { class: 'v' }, d.bot ? d.bot.basicId + (d.bot.displayName ? ' (' + d.bot.displayName + ')' : '') : el('span', { class: 'badge b-bad', text: d.tokenSet ? 'อ่านจาก LINE ไม่ได้ — กรอกค่าตั้ง LINE_BOT_BASIC_ID' : 'ยังไม่ได้ตั้ง Token' }),
           ' ', el('button', { class: 'btn btn-sm btn-ghost', text: 'ตรวจอีกครั้ง', on: { click: function () { load(true); } } }))),
@@ -2836,7 +2703,7 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
             el('button', { class: 'btn btn-sm', text: 'ทดสอบส่ง', on: { click: function (ev) { testTarget(ev.currentTarget, g.id); } } }),
             g.isMain ? null : el('button', { class: 'btn btn-sm btn-ghost', text: 'นำออก', on: { click: function (ev) {
               var b = ev.currentTarget;
-              busy(b, function () { return authed('removeLineGroup', g.id, newRid()).then(function (r) { toast('นำกลุ่มออกแล้ว' + (r.unmapped.length ? ' · หมวดที่ต้องกำหนดใหม่: ' + r.unmapped.join(', ') : ''), 'ok'); load(); }).catch(showError); });
+              busy(b, function () { return authed('removeLineGroup', g.id, newRid()).then(function () { toast('นำกลุ่มออกแล้ว', 'ok'); load(); }).catch(showError); });
             } } }));
         })) : el('div', { class: 'empty', text: 'ยังไม่มีกลุ่มที่ยืนยัน' })));
       if (d.pending.length) card.appendChild(el('div', { class: 'section' }, el('div', { class: 'muted small', style: { fontWeight: 600 }, text: 'กลุ่มที่เชิญบอทแล้ว รอยืนยัน' }),
@@ -2852,21 +2719,6 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
         var b = ev.currentTarget;
         busy(b, function () { return authed('addLineGroup', manual.value.trim(), newRid()).then(function (r) { toast('เพิ่มกลุ่ม "' + r.groupName + '" แล้ว', 'ok'); load(); }).catch(showError); });
       } } })));
-      var sels = {};
-      card.appendChild(el('div', { class: 'section' }, el('div', { class: 'muted small', style: { fontWeight: 600 }, text: 'หมวดงาน → กลุ่มที่จะส่ง (1 หมวดเลือกได้หลายกลุ่ม สูงสุด 5 · ไม่ติ๊ก = ไม่ส่ง LINE)' }),
-        d.groups.length ? el('div', { class: 'form-grid' }, d.topics.map(function (t) {
-          var mine = (d.map[t] || []);
-          sels[t] = d.groups.map(function (g) { var c = el('input', { type: 'checkbox', checked: mine.indexOf(g.id) !== -1, attrs: { 'aria-label': t + ' → ' + g.name } }); c._id = g.id; return c; });
-          return el('div', { class: 'field' }, el('label', { text: t }), el('div', { class: 'chk-list' }, d.groups.map(function (g, i) { return el('label', { class: 'check' }, sels[t][i], g.name); })),
-            mine.length ? null : el('div', { class: 'hint', text: 'ยังไม่กำหนด — หมวดนี้จะไม่ส่ง LINE' }));
-        })) : el('div', { class: 'empty', text: 'เพิ่มกลุ่มที่ยืนยันแล้วก่อน จึงกำหนดหมวดงานได้' })));
-      var saveBtn = el('button', { class: 'btn btn-primary', text: 'บันทึกการกำหนดกลุ่ม' });
-      var rid = newRid();
-      saveBtn.addEventListener('click', function () {
-        var map = {}; Object.keys(sels).forEach(function (t) { map[t] = sels[t].filter(function (c) { return c.checked; }).map(function (c) { return c._id; }); });
-        busy(saveBtn, function () { return authed('saveMeetingGroupMap', map, rid).then(function (r) { rid = newRid(); toast('บันทึกแล้ว · กำหนดแล้ว ' + r.mapped + ' หมวด' + (r.unmapped.length ? ' · ยังไม่กำหนด: ' + r.unmapped.join(', ') : ''), r.unmapped.length ? 'warn' : 'ok'); S.meetingCfg = null; }).catch(showError); });
-      });
-      card.appendChild(el('div', { class: 'row section' }, saveBtn));
       recipientsSection(card, d, load);
     }
     function testTarget(b, id) {
@@ -2876,18 +2728,17 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
     return card;
   }
 
-  /** ผู้รับ LINE ส่วนตัว (User ID) — กำหนดหมวดที่รับ และผู้ดูแลที่รับข้อความทดสอบก่อนส่งจริง */
+  /** ผู้รับ LINE ส่วนตัว (User ID) — ผู้ดูแลที่รับข้อความทดสอบและแจ้งเตือนโควตา */
   function recipientsSection(card, d, reload) {
     var box = el('div', { class: 'section stack' });
     box.appendChild(el('h3', { text: 'ผู้รับ LINE ส่วนตัว (User ID)' }));
-    box.appendChild(el('div', { class: 'notice', text: 'วิธีได้ User ID: ให้ผู้รับเพิ่มบอทเป็นเพื่อน แล้วพิมพ์ "ลงทะเบียน" ในแชตส่วนตัวกับบอท — ชื่อจะขึ้นใน "รอยืนยัน" ด้านล่าง · หรือกรอก User ID (U + 32 ตัว) เอง ระบบตรวจกับ LINE ก่อนบันทึก · ติ๊ก "ผู้ดูแลระบบ" เพื่อรับข้อความทดสอบก่อนส่งจริง' }));
-    var topicsOf = function (r) { return r.topics.indexOf('*') !== -1 ? 'ทุกหมวด' : r.topics.join(', '); };
+    box.appendChild(el('div', { class: 'notice', text: 'วิธีได้ User ID: ให้ผู้รับเพิ่มบอทเป็นเพื่อน แล้วพิมพ์ "ลงทะเบียน" ในแชตส่วนตัวกับบอท — ชื่อจะขึ้นใน "รอยืนยัน" ด้านล่าง · หรือกรอก User ID (U + 32 ตัว) เอง ระบบตรวจกับ LINE ก่อนบันทึก · ติ๊ก "รับข้อความทดสอบและแจ้งเตือนโควตา" ให้ผู้ดูแล' }));
     box.appendChild(d.recipients.length ? el('div', { class: 'list-rows' }, d.recipients.map(function (r) {
       return el('div', { class: 'lrow', style: { cursor: 'default' } },
         el('div', { class: 'main-t' }, el('div', { class: 't1', text: r.name + (r.admin ? ' · รับข้อความทดสอบ' : '') },
             el('span', { class: 'badge ' + (r.kind ? 'b-progress' : 'b-overdue'), style: { marginLeft: '6px' }, text: r.kind === 'executive' ? 'ผู้บริหาร' : (r.kind === 'admin' ? 'ผู้ดูแลระบบ' : 'ยังไม่ระบุประเภท — ระบบข้ามการส่ง') }),
             r.enabled === false ? el('span', { class: 'badge b-cancel', style: { marginLeft: '4px' }, text: 'ปิดรับ' }) : null),
-          el('div', { class: 't2 mono', text: r.idMasked + ' · รับ: ' + topicsOf(r) })),
+          el('div', { class: 't2 mono', text: r.idMasked })),
         el('div', { class: 'row' },
           el('button', { class: 'btn btn-sm', text: 'ทดสอบส่ง', on: { click: function (ev) { var b = ev.currentTarget; busy(b, function () { return authed('testLineTarget', r.id, newRid()).then(function (x) { toast(x.message, x.sent ? 'ok' : 'err'); }).catch(showError); }); } } }),
           el('button', { class: 'btn btn-sm', text: 'แก้ไข', on: { click: function () { recipientForm(d, r, reload); } } }),
@@ -2896,7 +2747,7 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
     if (d.pendingUsers.length) box.appendChild(el('div', null, el('div', { class: 'muted small', style: { fontWeight: 600 }, text: 'รอยืนยัน (พิมพ์ "ลงทะเบียน" ถึงบอทแล้ว)' }),
       el('div', { class: 'list-rows' }, d.pendingUsers.map(function (p) {
         return el('div', { class: 'lrow', style: { cursor: 'default' } }, el('div', { class: 'main-t' }, el('div', { class: 't1', text: p.name || 'ผู้ใช้ LINE' }), el('div', { class: 't2 mono', text: p.idMasked + ' · ' + fmtTs(p.at) })),
-          el('button', { class: 'btn btn-sm btn-primary', text: 'ยืนยันและกำหนดหมวด', on: { click: function () { recipientForm(d, { id: p.id, name: p.name, topics: ['*'], admin: false, isNew: true }, reload); } } }));
+          el('button', { class: 'btn btn-sm btn-primary', text: 'ยืนยัน', on: { click: function () { recipientForm(d, { id: p.id, name: p.name, topics: ['*'], admin: false, isNew: true }, reload); } } }));
       }))));
     box.appendChild(el('div', { class: 'row' }, el('button', { class: 'btn', text: '+ เพิ่มผู้รับด้วย User ID', on: { click: function () { recipientForm(d, null, reload); } } })));
     card.appendChild(box);
@@ -2905,23 +2756,17 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
   function recipientForm(d, r, reload) {
     var idIn = el('input', { class: 'input mono', value: r ? r.id : '', maxLength: 40, placeholder: 'U + อักขระ 32 ตัว เช่น U1a2b3c…', disabled: !!(r && !r.isNew), attrs: { 'aria-label': 'LINE User ID' } });
     var nameIn = el('input', { class: 'input', value: r ? r.name : '', maxLength: 60, placeholder: 'ชื่อที่แสดง เช่น คุณซัน (ผู้บริหาร)', attrs: { 'aria-label': 'ชื่อผู้รับ' } });
-    var all = el('input', { type: 'checkbox', checked: !r || r.topics.indexOf('*') !== -1 });
-    var tc = d.topics.map(function (t) { var c = el('input', { type: 'checkbox', checked: !!r && r.topics.indexOf(t) !== -1 }); c._t = t; return c; });
     var adm = el('input', { type: 'checkbox', checked: !!(r && r.admin) });
     var kindSel = el('select', { class: 'input', attrs: { 'aria-label': 'ประเภทผู้รับ' } },
       el('option', { value: '', text: '— เลือกประเภทผู้รับ —' }),
       el('option', { value: 'executive', text: 'ผู้บริหาร (ได้รับอนุญาต)', selected: !!(r && r.kind === 'executive') }),
       el('option', { value: 'admin', text: 'ผู้ดูแลระบบ (ได้รับอนุญาต)', selected: !!(r && r.kind === 'admin') }));
     var enabledChk = el('input', { type: 'checkbox', checked: !(r && r.enabled === false) });
-    var topicBox = el('div', { class: 'chk-list' }, tc.map(function (c) { return el('label', { class: 'check' }, c, c._t); }));
-    var sync = function () { topicBox.classList.toggle('hidden', all.checked); };
-    all.addEventListener('change', sync); sync();
     var save = el('button', { class: 'btn btn-primary', text: 'ตรวจกับ LINE และบันทึก' });
     var m = openModal({ title: r && !r.isNew ? 'แก้ไขผู้รับ LINE ส่วนตัว' : 'เพิ่มผู้รับ LINE ส่วนตัว', size: 'sm',
       body: el('div', { class: 'stack' },
         el('div', { class: 'field' }, el('label', null, 'LINE User ID', el('span', { class: 'req', text: '*' })), idIn),
         el('div', { class: 'field' }, el('label', { text: 'ชื่อที่แสดง' }), nameIn),
-        el('div', { class: 'field' }, el('label', { text: 'หมวดงานที่รับแจ้ง' }), el('label', { class: 'check' }, all, 'ทุกหมวด'), topicBox),
         el('div', { class: 'field' }, el('label', null, 'ประเภทผู้รับ', el('span', { class: 'req', text: '*' })), kindSel,
           el('div', { class: 'hint', text: 'ส่ง LINE ส่วนตัวได้เฉพาะผู้บริหาร/ผู้ดูแลระบบที่ได้รับอนุญาต — ผู้ใช้ทั่วไปและสมาชิกกลุ่มไม่ได้รับข้อความส่วนตัว' })),
         el('label', { class: 'check' }, enabledChk, 'รับแจ้งเตือน (ปิด = หยุดส่งถึงคนนี้ชั่วคราว)'),
@@ -2932,11 +2777,9 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
     save.addEventListener('click', function () {
       var id = idIn.value.trim();
       if (!/^U[0-9a-f]{32}$/.test(id)) { idIn.classList.add('invalid'); toast('User ID ต้องขึ้นต้นด้วย U ตามด้วยอักขระ 32 ตัว (0-9, a-f)', 'warn'); return; }
-      var topics = all.checked ? ['*'] : tc.filter(function (c) { return c.checked; }).map(function (c) { return c._t; });
-      if (!topics.length) { toast('เลือกหมวดงานอย่างน้อย 1 หมวด หรือติ๊ก "ทุกหมวด"', 'warn'); return; }
       if (!kindSel.value) { kindSel.classList.add('invalid'); toast('กรุณาเลือกประเภทผู้รับ (ผู้บริหาร หรือ ผู้ดูแลระบบ)', 'warn'); return; }
       busy(save, function () {
-        return authed('saveLineRecipient', { id: id, name: nameIn.value.trim(), topics: topics, admin: adm.checked, kind: kindSel.value, enabled: enabledChk.checked }, rid).then(function (x) {
+        return authed('saveLineRecipient', { id: id, name: nameIn.value.trim(), topics: ['*'], admin: adm.checked, kind: kindSel.value, enabled: enabledChk.checked }, rid).then(function (x) {
           toast((x.created ? 'เพิ่ม' : 'บันทึก') + 'ผู้รับ "' + x.name + '" แล้ว', 'ok'); m.close(); reload();
         }).catch(function (e) { rid = newRid(); showError(e); });
       });
@@ -3027,17 +2870,15 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
     }) : null;
     var docBox = stager ? el('div', { class: 'doc-form-box' }, el('div', { class: 'df-head' }, el('strong', { text: '📎 เอกสารแนบ' }),
       el('span', { class: 'muted small', text: ' เลือกไฟล์ ตั้งชื่อ เลือกประเภท — ระบบอัปโหลดให้หลังกดบันทึกและบันทึกข้อมูลสำเร็จ' })), stager.el) : null;
-    var isMtg = cat === 'meetings';
-    if (isMtg && mode === 'create') banner = el('div', { class: 'notice', style: { marginBottom: '12px' }, text: 'ผู้แจ้ง: ' + (S.profile.displayName || '') + ' (ระบบใส่ให้อัตโนมัติจากผู้ที่เข้าสู่ระบบ) · กด "บันทึกร่าง" เพื่อเก็บไว้ก่อน หรือ "บันทึกและส่งแจ้งเตือน LINE" เมื่อข้อมูลครบ' });
-    var save = el('button', { class: 'btn ' + (isMtg ? '' : 'btn-primary'), text: isMtg ? (mode === 'create' ? 'บันทึกร่าง' : 'บันทึกการแก้ไข') : (mode === 'create' ? 'บันทึกรายการ' : 'บันทึกการแก้ไข') });
-    var saveSend = isMtg ? el('button', { class: 'btn btn-primary', text: 'บันทึกและส่งแจ้งเตือน LINE' }) : null;
+    if (cat === 'purchases' && mode === 'create' && !banner) banner = el('div', { class: 'notice', style: { marginBottom: '12px' }, text: 'ระบุทรัพย์สิน หรือที่ดิน อย่างน้อย 1 ช่อง · ยอดคงเหลือระบบคำนวณให้ (ราคารวม − ยอดชำระแล้วรวม) · เปลี่ยนสถานะเป็น "โอนกรรมสิทธิ์แล้ว" เมื่อโอนเสร็จ' });
+    var save = el('button', { class: 'btn btn-primary', text: mode === 'create' ? 'บันทึกรายการ' : 'บันทึกการแก้ไข' });
     var m = openModal({
       title: (mode === 'create' ? 'เพิ่ม' : 'แก้ไข') + schema.label, sticky: true,
-      body: [banner, errBox, grid, docBox, el('p', { class: 'muted small', text: '* จำเป็นต้องกรอก · ระบบตรวจข้อมูลซ้ำและสิทธิ์อีกครั้งก่อนบันทึก' }), isMtg ? meetingNoteBox() : null],
-      foot: [el('button', { class: 'btn', text: 'ยกเลิก', on: { click: function () { m.close(); } } }), save, saveSend]
+      body: [banner, errBox, grid, docBox, el('p', { class: 'muted small', text: '* จำเป็นต้องกรอก · ระบบตรวจข้อมูลซ้ำและสิทธิ์อีกครั้งก่อนบันทึก' })],
+      foot: [el('button', { class: 'btn', text: 'ยกเลิก', on: { click: function () { m.close(); } } }), save]
     });
 
-    function submit(btn, andSend) {
+    function submit(btn) {
       clear(errBox);
       var data = {}, missing = [], bad = [];
       schema.fields.forEach(function (f) {
@@ -3059,33 +2900,28 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
       });
       if (missing.length) { showErrors(errBox, 'กรุณากรอกข้อมูลที่จำเป็น', missing.concat(bad)); m.body.scrollTop = 0; return; }
       if (bad.length) { showErrors(errBox, 'ข้อมูลไม่ถูกต้อง', bad); m.body.scrollTop = 0; return; }
-      if (isMtg && mode === 'update' && !Object.keys(data).length && andSend) { busy(btn, function () { return sendMeeting(orig.id).then(function () { m.close(); refreshCurrent(); }); }); return; }
       if (stager && stager.validate()) { showErrors(errBox, 'ตรวจเอกสารแนบที่ขึ้นสีแดงก่อนบันทึก', []); return; }
       if (mode === 'update' && !Object.keys(data).length) {
         if (stager && stager.count()) { busy(btn, function () { return sendDocs(orig); }); return; } // แก้เฉพาะเอกสาร
         toast('ไม่มีการเปลี่ยนแปลง', 'warn'); return;
       }
-      var other = saveSend ? (btn === save ? saveSend : save) : null;
-      if (other) other.disabled = true; // กันกดปุ่มอีกปุ่มระหว่างบันทึก
       busy(btn, function () {
         var p = mode === 'create' ? authed('createRecord', cat, data, rid) : authed('updateRecord', cat, orig.id, data, orig.version, rid);
         return p.then(function (r) {
-          toast(cat === 'contracts' && !r.unchanged ? 'บันทึกข้อมูลสัญญาเช่าเรียบร้อยแล้ว' : (mode === 'create' ? (isMtg ? 'บันทึกร่างแล้ว' : 'บันทึกรายการแล้ว') : (r.unchanged ? 'ไม่มีการเปลี่ยนแปลง' : 'บันทึกการแก้ไขแล้ว')), 'ok');
-          if (isMtg && r.reminderAsk && r.record && r.record.id) askReRemind(r.record.id);
+          toast(cat === 'contracts' && !r.unchanged ? 'บันทึกข้อมูลสัญญาเช่าเรียบร้อยแล้ว' : (mode === 'create' ? 'บันทึกรายการแล้ว' : (r.unchanged ? 'ไม่มีการเปลี่ยนแปลง' : 'บันทึกการแก้ไขแล้ว')), 'ok');
           saveCustomOptions(cat, schema.fields, inputs);
           if (mode === 'update' && r.record && r.record.id && S.patchRow) S.patchRow(cat, r.record); // v1.16 เซิร์ฟเวอร์ยืนยันแล้ว → ปรับแถวเดิมทันที
           (r.linked || []).forEach(function (n) { toast(n, 'ok'); });
-          (r.warnings || []).forEach(function (w2) { if (!andSend || w2.indexOf('ส่งแจ้งเตือน LINE') === -1) toast(w2, 'warn'); });
+          (r.warnings || []).forEach(function (w2) { toast(w2, 'warn'); });
           if (stager && stager.count()) return sendDocs(r.record && r.record.id ? r.record : orig);
           m.close();
-          if (andSend && r.record && r.record.id) return sendMeeting(r.record.id).then(refreshCurrent, refreshCurrent);
           refreshCurrent();
         }).catch(function (e) {
           if (e.code === 'CONFLICT') showErrors(errBox, e.message, ['ปิดหน้าต่างนี้แล้วเปิดรายการใหม่เพื่อดูข้อมูลล่าสุด']);
           else if (e.code === 'VALIDATION' || e.code === 'DUPLICATE' || e.code === 'FORBIDDEN') showErrors(errBox, e.message, e.details || []);
           else showError(e);
           m.body.scrollTop = 0;
-        }).finally(function () { if (other) other.disabled = false; });
+        });
       });
     }
     /** ส่งเอกสารที่เตรียมไว้ หลังบันทึกข้อมูลสำเร็จ — ไม่สำเร็จบางรายการ: เปิดหน้าต่างค้างไว้ให้ลองใหม่ (ข้อมูลหลักบันทึกแล้ว) */
@@ -3099,8 +2935,7 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
         refreshCurrent();
       }, function (e) { clear(errBox).appendChild(el('div', { class: 'errors', text: (e && e.message) || 'ส่งเอกสารไม่สำเร็จ' })); refreshCurrent(); });
     }
-    save.addEventListener('click', function () { submit(save, false); });
-    if (saveSend) saveSend.addEventListener('click', function () { submit(saveSend, true); });
+    save.addEventListener('click', function () { submit(save); });
   }
 
   /** ข้อความลายน้ำ (placeholder) — แสดงเฉพาะตอนช่องว่าง ไม่ถูกส่งไปบันทึก */
@@ -3358,7 +3193,7 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
     var source = null, book = null, mapping = null, last = null, chosen = {};
     // v1.9 คำแนะนำจากการวิเคราะห์คอลัมน์ (กฎในระบบ / AI) + ช่องใหม่ที่ผู้ใช้ยืนยัน
     var analysis = null, newDefs = {}, aiBtn = null;
-    var canFields = !!S.config.canManageFields && cat !== 'meetings';
+    var canFields = !!S.config.canManageFields;
     function newFieldList() {
       return Object.keys(newDefs).map(function (k) { var d = newDefs[k]; return { index: Number(k), label: d.label, type: d.type, options: d.options || [], pii: !!d.pii }; });
     }
@@ -3775,8 +3610,8 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
     ['ทั่วไป', ['APP_DISPLAY_NAME', 'ORG_NAME', 'DATA_ENV', 'PAGE_SIZE', 'DUE_SOON_DAYS']],
     ['ความปลอดภัยการเข้าสู่ระบบ', ['SESSION_HOURS', 'OTP_TTL_MIN', 'OTP_MAX_ATTEMPTS', 'LOGIN_LOCK_MIN']],
     ['ไฟล์แนบ', ['MAX_UPLOAD_MB', 'ALLOWED_FILE_EXT', 'IMAGE_COMPRESS', 'IMAGE_MAX_PX', 'IMAGE_QUALITY']],
-    ['แจ้งเตือน LINE', ['LINE_ENABLED', 'LINE_FLEX', 'LINE_CHANGE_NOTIFY', 'WEB_APP_URL', 'LINE_MONTHLY_BUDGET', 'LINE_NEAR_LIMIT_PCT', 'LINE_NONURGENT_TYPES', 'ERROR_ALERTS']],
-    ['แจ้งนัดประชุม / แจ้งเตือนเช้าวันประชุม', ['MEETING_REMINDER_ENABLED', 'MEETING_REMINDER_MAX_TRIES', 'MEETING_REMINDER_MISSED', 'MEETING_DM_WINDOW_ONLY', 'MEETING_DM_EXECUTIVES', 'LINE_BOT_BASIC_ID']],
+    ['แจ้งเตือน LINE', ['LINE_ENABLED', 'LINE_FLEX', 'LINE_CHANGE_NOTIFY', 'WEB_APP_URL', 'LINE_MONTHLY_BUDGET', 'LINE_NEAR_LIMIT_PCT', 'LINE_NONURGENT_TYPES', 'ERROR_ALERTS', 'LINE_BOT_BASIC_ID']],
+    ['สัญญาจะซื้อจะขาย', ['OPTIONS_PURCHASE_SIDE', 'OPTIONS_TRANSFER_FEE', 'OPTIONS_DOC_TYPE_PURCHASE']],
     ['AI (Gemini)', ['AI_ENABLED', 'AI_MAX_PER_USER_DAY', 'AI_MAX_CALLS_PER_DAY', 'AI_MAX_PER_USER_MONTH', 'AI_MAX_CALLS_PER_MONTH', 'AI_TYPE_LIMITS', 'GEMINI_MODEL']],
     ['ไฟล์สัญญาเช่า', ['CONTRACT_FILE_EXT', 'CONTRACT_FOLDER_ID', 'CONTRACT_TENANT_SUBFOLDER']],
     ['ช่องค้นหา/เลือกรายการอ้างอิงในฟอร์ม', ['REF_LOOKUP_FOR_EDITORS', 'REF_LOOKUP_SHOW_NAME', 'REF_QUICK_ADD_FOR_EDITORS']],
@@ -3805,7 +3640,7 @@ window.APP_VERSION = window.APP_VERSION || '1.17.0';
   };
   var COL_SRC = { SHEET: 'แก้ในชีตโดยตรง', REFRESH: 'กดรีเฟรช', MAP: 'ยืนยันชื่อใหม่', RENAME: 'เปลี่ยนชื่อจากหน้าเว็บ', DELETE: 'ลบจากหน้าเว็บ', RESTORE: 'คืนคอลัมน์', ADOPT: 'เพิ่มเป็นช่องข้อมูล' };
   function columnsCard() {
-    var cats = Object.keys(S.config.schemas).filter(function (c) { return c !== 'meetings' || canG('manageSettings'); });
+    var cats = Object.keys(S.config.schemas);
     var sel = el('select', { class: 'input', style: { width: 'auto', minWidth: '200px' } }, cats.map(function (c) { return el('option', { value: c, text: S.config.schemas[c].label }); }));
     var box = el('div', { class: 'section' });
     var load = function (refresh) {
